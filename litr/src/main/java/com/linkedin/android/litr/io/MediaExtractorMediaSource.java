@@ -37,6 +37,10 @@ public class MediaExtractorMediaSource implements MediaSource {
     }
 
     public MediaExtractorMediaSource(@NonNull Context context, @NonNull Uri uri, @NonNull MediaRange mediaRange) throws MediaSourceException {
+        this(context, uri, mediaRange, TranscoderUtils.getSize(context, uri));
+    }
+
+    public MediaExtractorMediaSource(@NonNull Context context, @NonNull Uri uri, @NonNull MediaRange mediaRange, long size) throws MediaSourceException {
         this.mediaRange = mediaRange;
 
         mediaExtractor = new MediaExtractor();
@@ -52,7 +56,11 @@ public class MediaExtractorMediaSource implements MediaSource {
         if (rotation != null) {
             orientationHint = Integer.parseInt(rotation);
         }
-        size = TranscoderUtils.getSize(context, uri);
+        if (size < 1) {
+            this.size = TranscoderUtils.getSize(context, uri);
+        } else {
+            this.size = size;
+        }
         // Release unused anymore MediaMetadataRetriever instance
         releaseQuietly(mediaMetadataRetriever);
     }

@@ -37,32 +37,34 @@ public class MediaExtractorMediaSource implements MediaSource {
     }
 
     public MediaExtractorMediaSource(@NonNull Context context, @NonNull Uri uri, @NonNull MediaRange mediaRange) throws MediaSourceException {
-        this(context, uri, mediaRange, TranscoderUtils.getSize(context, uri));
+        this(context, uri, mediaRange, TranscoderUtils.getSize(context, uri), false);
     }
 
-    public MediaExtractorMediaSource(@NonNull Context context, @NonNull Uri uri, @NonNull MediaRange mediaRange, long size) throws MediaSourceException {
+    public MediaExtractorMediaSource(@NonNull Context context, @NonNull Uri uri, @NonNull MediaRange mediaRange, long size, boolean isNetworkSource) throws MediaSourceException {
         this.mediaRange = mediaRange;
 
         mediaExtractor = new MediaExtractor();
-        MediaMetadataRetriever mediaMetadataRetriever = new MediaMetadataRetriever();
-        try {
-            mediaExtractor.setDataSource(context, uri, null);
-            mediaMetadataRetriever.setDataSource(context, uri);
-        } catch (IOException ex) {
+        if (!isNetworkSource) {
+            MediaMetadataRetriever mediaMetadataRetriever = new MediaMetadataRetriever();
+            try {
+                mediaExtractor.setDataSource(context, uri, null);
+                mediaMetadataRetriever.setDataSource(context, uri);
+            } catch (IOException ex) {
+                releaseQuietly(mediaMetadataRetriever);
+                throw new MediaSourceException(DATA_SOURCE, uri, ex);
+            }
+            String rotation = mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_ROTATION);
+            if (rotation != null) {
+                orientationHint = Integer.parseInt(rotation);
+            }
+            // Release unused anymore MediaMetadataRetriever instance
             releaseQuietly(mediaMetadataRetriever);
-            throw new MediaSourceException(DATA_SOURCE, uri, ex);
-        }
-        String rotation = mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_ROTATION);
-        if (rotation != null) {
-            orientationHint = Integer.parseInt(rotation);
         }
         if (size < 1) {
             this.size = TranscoderUtils.getSize(context, uri);
         } else {
             this.size = size;
         }
-        // Release unused anymore MediaMetadataRetriever instance
-        releaseQuietly(mediaMetadataRetriever);
     }
 
     @Override

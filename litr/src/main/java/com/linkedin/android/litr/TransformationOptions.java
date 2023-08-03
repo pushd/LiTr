@@ -36,6 +36,7 @@ public class TransformationOptions {
     public final boolean removeAudio;
     public final boolean removeMetadata;
     public final long sourceSize;
+    public final boolean isNetworkSource;
 
     private TransformationOptions(@IntRange(from = GRANULARITY_NONE) int granularity,
                                   @Nullable List<GlFilter> videoFilters,
@@ -43,7 +44,8 @@ public class TransformationOptions {
                                   @Nullable MediaRange sourceMediaRange,
                                   boolean removeAudio,
                                   boolean removeMetadata,
-                                  long sourceSize) {
+                                  long sourceSize,
+                                  boolean isNetworkSource) {
         this.granularity = granularity;
         this.videoFilters = videoFilters;
         this.audioFilters = audioFilters;
@@ -51,6 +53,7 @@ public class TransformationOptions {
         this.removeAudio = removeAudio;
         this.removeMetadata = removeMetadata;
         this.sourceSize = sourceSize;
+        this.isNetworkSource = isNetworkSource;
     }
 
     public static class Builder {
@@ -61,6 +64,7 @@ public class TransformationOptions {
         private boolean removeAudio;
         private boolean removeMetadata;
         private long sourceSize = 0;
+        private boolean isNetworkSource = false;
 
         @NonNull
         public Builder setGranularity(@IntRange(from = GRANULARITY_NONE) int granularity) {
@@ -99,14 +103,15 @@ public class TransformationOptions {
         }
 
         @NonNull
-        public Builder setSourceSize(long sourceSize) {
+        public Builder setSourceAsNetwork(long sourceSize) {
+            this.isNetworkSource = true;
             this.sourceSize = sourceSize;
             return this;
         }
 
         @NonNull
         public TransformationOptions build() {
-            return new TransformationOptions(granularity, videoFilters, audioFilters, sourceMediaRange, removeAudio, removeMetadata, sourceSize);
+            return new TransformationOptions(granularity, videoFilters, audioFilters, sourceMediaRange, removeAudio, removeMetadata, sourceSize, isNetworkSource);
         }
     }
 }

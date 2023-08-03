@@ -152,7 +152,7 @@ public class MediaTransformer {
                 : transformationOptions;
 
         try {
-            MediaSource mediaSource = new MediaExtractorMediaSource(context, inputUri, options.sourceMediaRange, options.sourceSize);
+            MediaSource mediaSource = new MediaExtractorMediaSource(context, inputUri, options.sourceMediaRange, options.sourceSize, options.isNetworkSource);
 
             int targetTrackCount = 0;
             for (int track = 0; track < mediaSource.getTrackCount(); track++) {

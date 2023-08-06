@@ -13,6 +13,8 @@ import android.media.MediaFormat;
 import android.media.MediaMetadataRetriever;
 import android.net.Uri;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+
 import com.linkedin.android.litr.exception.MediaSourceException;
 import com.linkedin.android.litr.utils.TranscoderUtils;
 
@@ -44,15 +46,18 @@ public class MediaExtractorMediaSource implements MediaSource {
         this.mediaRange = mediaRange;
 
         mediaExtractor = new MediaExtractor();
-        if (!isNetworkSource) {
-            MediaMetadataRetriever mediaMetadataRetriever = new MediaMetadataRetriever();
-            try {
-                mediaExtractor.setDataSource(context, uri, null);
+        MediaMetadataRetriever mediaMetadataRetriever = null;
+        try {
+            mediaExtractor.setDataSource(context, uri, null);
+            if (!isNetworkSource) {
+                mediaMetadataRetriever = new MediaMetadataRetriever();
                 mediaMetadataRetriever.setDataSource(context, uri);
-            } catch (IOException ex) {
-                releaseQuietly(mediaMetadataRetriever);
-                throw new MediaSourceException(DATA_SOURCE, uri, ex);
             }
+        } catch (IOException ex) {
+            releaseQuietly(mediaMetadataRetriever);
+            throw new MediaSourceException(DATA_SOURCE, uri, ex);
+        }
+        if (mediaMetadataRetriever != null) { // is null for network source
             String rotation = mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_ROTATION);
             if (rotation != null) {
                 orientationHint = Integer.parseInt(rotation);
@@ -134,7 +139,8 @@ public class MediaExtractorMediaSource implements MediaSource {
         return mediaRange;
     }
 
-    private void releaseQuietly(MediaMetadataRetriever mediaMetadataRetriever) {
+    private void releaseQuietly(@Nullable MediaMetadataRetriever mediaMetadataRetriever) {
+        if (mediaMetadataRetriever == null) return;
         try {
             mediaMetadataRetriever.release();
         } catch (IOException ex) {

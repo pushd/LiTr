@@ -269,26 +269,59 @@ public class MediaTransformer {
 
         for (int trackIndex = 0; trackIndex < trackCount; trackIndex++) {
             TrackTransform trackTransform = trackTransforms.get(trackIndex);
-            if (trackTransform.getTargetFormat() == null
-                && (trackTransform.getRenderer() != null && trackTransform.getRenderer().hasFilters()
+            if ((trackTransform.getRenderer() != null && trackTransform.getRenderer().hasFilters()
                     || isAudioIncompatible(trackTransform.getMediaSource(), trackTransform.getSourceTrack(), targetVideoMimeType))) {
-                // target format is null, but track has overlays, which means that we cannot use passthrough transcoder
-                // so we transcode the track using source parameters (resolution, bitrate) as a target
-                MediaFormat targetFormat = createTargetMediaFormat(trackTransform.getMediaSource(),
-                                                                   trackTransform.getSourceTrack(),
-                                                                   targetVideoMimeType);
+                MediaFormat targetFormat;
+                if (trackTransform.getTargetFormat() == null) {
+                    // target format is null, but track has overlays, which means that we cannot use passthrough transcoder
+                    // so we transcode the track using source parameters (resolution, bitrate) as a target
+                    targetFormat = createTargetMediaFormat(trackTransform.getMediaSource(),
+                            trackTransform.getSourceTrack(),
+                            targetVideoMimeType);
+                } else {
+                    targetFormat = trackTransform.getTargetFormat();
+                    MediaFormat sourceMediaFormat = trackTransform.getMediaSource().getTrackFormat(trackTransform.getSourceTrack());
+                    // make sure the target format has everything needed
+                    if (!targetFormat.containsKey(MediaFormat.KEY_HEIGHT) || !targetFormat.containsKey(MediaFormat.KEY_WIDTH)) {
+                        // just use from the source
+                        targetFormat.setInteger(MediaFormat.KEY_WIDTH, sourceMediaFormat.getInteger(MediaFormat.KEY_WIDTH));
+                        targetFormat.setInteger(MediaFormat.KEY_HEIGHT, sourceMediaFormat.getInteger(MediaFormat.KEY_HEIGHT));
+                    }
+
+                    if (!targetFormat.containsKey(MediaFormat.KEY_MIME)) {
+                        targetFormat.setString(MediaFormat.KEY_MIME, sourceMediaFormat.getString(MediaFormat.KEY_MIME));
+                    }
+
+                    if (!targetFormat.containsKey(MediaFormat.KEY_BIT_RATE)) {
+                        int targetBitrate = TranscoderUtils.estimateVideoTrackBitrate(trackTransform.getMediaSource(), trackTransform.getSourceTrack());
+                        targetFormat.setInteger(MediaFormat.KEY_BIT_RATE, targetBitrate);
+                    }
+
+                    int targetKeyFrameInterval = DEFAULT_KEY_FRAME_INTERVAL;
+                    if (!targetFormat.containsKey(MediaFormat.KEY_I_FRAME_INTERVAL) && sourceMediaFormat.containsKey(MediaFormat.KEY_I_FRAME_INTERVAL)) {
+                        targetKeyFrameInterval = sourceMediaFormat.getInteger(MediaFormat.KEY_I_FRAME_INTERVAL);
+                    }
+                    targetFormat.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, targetKeyFrameInterval);
+
+                    if (!targetFormat.containsKey(MediaFormat.KEY_FRAME_RATE))
+                        targetFormat.setInteger(
+                            MediaFormat.KEY_FRAME_RATE,
+                            MediaFormatUtils.getFrameRate(sourceMediaFormat, DEFAULT_FRAME_RATE).intValue()
+                    );
+
+                }
                 TrackTransform updatedTrackTransform = new TrackTransform.Builder(trackTransform.getMediaSource(),
-                                                                                  trackTransform.getSourceTrack(),
-                                                                                  trackTransform.getMediaTarget())
-                    .setTargetTrack(trackTransform.getTargetTrack())
-                    .setDecoder(trackTransform.getDecoder())
-                    .setEncoder(trackTransform.getEncoder())
-                    .setRenderer(trackTransform.getRenderer())
-                    .setTargetFormat(targetFormat)
-                    .build();
+                        trackTransform.getSourceTrack(),
+                        trackTransform.getMediaTarget())
+                        .setTargetTrack(trackTransform.getTargetTrack())
+                        .setDecoder(trackTransform.getDecoder())
+                        .setEncoder(trackTransform.getEncoder())
+                        .setRenderer(trackTransform.getRenderer())
+                        .setTargetFormat(targetFormat)
+                        .build();
 
                 trackTransforms.set(trackIndex, updatedTrackTransform);
-            }
+                }
         }
 
         TransformationJob transformationJob = new TransformationJob(requestId,
@@ -411,16 +444,15 @@ public class MediaTransformer {
                 targetMediaFormat = MediaFormat.createVideoFormat(mimeType,
                                                                   sourceMediaFormat.getInteger(MediaFormat.KEY_WIDTH),
                                                                   sourceMediaFormat.getInteger(MediaFormat.KEY_HEIGHT));
-//                int targetBitrate = TranscoderUtils.estimateVideoTrackBitrate(mediaSource, sourceTrackIndex);
-                int targetBitrate = 5_400_000;
+                int targetBitrate = TranscoderUtils.estimateVideoTrackBitrate(mediaSource, sourceTrackIndex);
                 targetMediaFormat.setInteger(MediaFormat.KEY_BIT_RATE, targetBitrate);
 
-//                int targetKeyFrameInterval = DEFAULT_KEY_FRAME_INTERVAL;
-//                if (sourceMediaFormat.containsKey(MediaFormat.KEY_I_FRAME_INTERVAL)) {
-//                    targetKeyFrameInterval = sourceMediaFormat.getInteger(MediaFormat.KEY_I_FRAME_INTERVAL);
-//                }
-//                targetMediaFormat.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, targetKeyFrameInterval);
-                targetMediaFormat.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, 30);
+                int targetKeyFrameInterval = DEFAULT_KEY_FRAME_INTERVAL;
+                if (sourceMediaFormat.containsKey(MediaFormat.KEY_I_FRAME_INTERVAL)) {
+                    targetKeyFrameInterval = sourceMediaFormat.getInteger(MediaFormat.KEY_I_FRAME_INTERVAL);
+                }
+                targetMediaFormat.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, targetKeyFrameInterval);
+//                targetMediaFormat.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, 30);
 
                 targetMediaFormat.setInteger(
                         MediaFormat.KEY_FRAME_RATE,

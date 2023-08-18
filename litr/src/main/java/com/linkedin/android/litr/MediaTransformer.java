@@ -411,7 +411,8 @@ public class MediaTransformer {
                 targetMediaFormat = MediaFormat.createVideoFormat(mimeType,
                                                                   sourceMediaFormat.getInteger(MediaFormat.KEY_WIDTH),
                                                                   sourceMediaFormat.getInteger(MediaFormat.KEY_HEIGHT));
-                int targetBitrate = TranscoderUtils.estimateVideoTrackBitrate(mediaSource, sourceTrackIndex);
+//                int targetBitrate = TranscoderUtils.estimateVideoTrackBitrate(mediaSource, sourceTrackIndex);
+                int targetBitrate = 5_400_000;
                 targetMediaFormat.setInteger(MediaFormat.KEY_BIT_RATE, targetBitrate);
 
                 int targetKeyFrameInterval = DEFAULT_KEY_FRAME_INTERVAL;

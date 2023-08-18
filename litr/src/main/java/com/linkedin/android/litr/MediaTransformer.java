@@ -415,11 +415,12 @@ public class MediaTransformer {
                 int targetBitrate = 5_400_000;
                 targetMediaFormat.setInteger(MediaFormat.KEY_BIT_RATE, targetBitrate);
 
-                int targetKeyFrameInterval = DEFAULT_KEY_FRAME_INTERVAL;
-                if (sourceMediaFormat.containsKey(MediaFormat.KEY_I_FRAME_INTERVAL)) {
-                    targetKeyFrameInterval = sourceMediaFormat.getInteger(MediaFormat.KEY_I_FRAME_INTERVAL);
-                }
-                targetMediaFormat.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, targetKeyFrameInterval);
+//                int targetKeyFrameInterval = DEFAULT_KEY_FRAME_INTERVAL;
+//                if (sourceMediaFormat.containsKey(MediaFormat.KEY_I_FRAME_INTERVAL)) {
+//                    targetKeyFrameInterval = sourceMediaFormat.getInteger(MediaFormat.KEY_I_FRAME_INTERVAL);
+//                }
+//                targetMediaFormat.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, targetKeyFrameInterval);
+                targetMediaFormat.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, 30);
 
                 targetMediaFormat.setInteger(
                         MediaFormat.KEY_FRAME_RATE,

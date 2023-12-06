@@ -22,6 +22,7 @@ import com.linkedin.android.litr.utils.TranscoderUtils;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.HashMap;
 
 import static com.linkedin.android.litr.exception.MediaSourceException.Error.DATA_SOURCE;
 
@@ -54,7 +55,7 @@ public class MediaExtractorMediaSource implements MediaSource {
             mediaExtractor.setDataSource(context, uri, null);
             mediaMetadataRetriever = new MediaMetadataRetriever();
             if (isNetworkSource) {
-                mediaMetadataRetriever.setDataSource(uri.toString(), null);
+                mediaMetadataRetriever.setDataSource(uri.toString(), new HashMap<>());
             } else {
                 mediaMetadataRetriever.setDataSource(context, uri);
             }

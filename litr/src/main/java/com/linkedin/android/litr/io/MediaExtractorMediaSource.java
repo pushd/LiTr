@@ -65,6 +65,7 @@ public class MediaExtractorMediaSource implements MediaSource {
             Log.e(TAG, "Could not check the dimensions of the video source");
         }
         String rotation = mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_ROTATION);
+        Log.i(TAG, "Video rotation " + rotation);
         if (rotation != null) {
             orientationHint = Integer.parseInt(rotation);
         }
@@ -147,6 +148,7 @@ public class MediaExtractorMediaSource implements MediaSource {
     private void checkHeightRestriction(MediaMetadataRetriever mediaMetadataRetriever, int restrictToHeight, Uri uri) throws MediaSourceException, NumberFormatException {
         if (restrictToHeight > 0) {
             String height = mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT);
+            Log.i(TAG, "Video height " + height);
             if (height != null) {
                 if (Integer.parseInt(height) > restrictToHeight) {
                     throw new MediaSourceException(DATA_SOURCE, uri, new IllegalArgumentException("Video height greater than given restriction of " + restrictToHeight));
@@ -158,6 +160,7 @@ public class MediaExtractorMediaSource implements MediaSource {
     private void checkWidthRestriction(MediaMetadataRetriever mediaMetadataRetriever, int restrictToWidth, Uri uri) throws MediaSourceException, NumberFormatException {
         if (restrictToWidth > 0) {
             String width = mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH);
+            Log.i(TAG, "Video width " + width);
             if (width != null) {
                 if (Integer.parseInt(width) > restrictToWidth) {
                     throw new MediaSourceException(DATA_SOURCE, uri, new IllegalArgumentException("Video width greater than given restriction of " + restrictToWidth));

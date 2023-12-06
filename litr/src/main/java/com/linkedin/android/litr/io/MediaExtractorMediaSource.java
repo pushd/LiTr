@@ -42,10 +42,10 @@ public class MediaExtractorMediaSource implements MediaSource {
     }
 
     public MediaExtractorMediaSource(@NonNull Context context, @NonNull Uri uri, @NonNull MediaRange mediaRange) throws MediaSourceException {
-        this(context, uri, mediaRange, TranscoderUtils.getSize(context, uri), -1, -1);
+        this(context, uri, mediaRange, TranscoderUtils.getSize(context, uri), false, -1, -1);
     }
 
-    public MediaExtractorMediaSource(@NonNull Context context, @NonNull Uri uri, @NonNull MediaRange mediaRange, long size, int restrictToHeight, int restrictToWidth) throws MediaSourceException {
+    public MediaExtractorMediaSource(@NonNull Context context, @NonNull Uri uri, @NonNull MediaRange mediaRange, long size, boolean isNetworkSource, int restrictToHeight, int restrictToWidth) throws MediaSourceException {
         this.mediaRange = mediaRange;
 
         mediaExtractor = new MediaExtractor();
@@ -53,7 +53,11 @@ public class MediaExtractorMediaSource implements MediaSource {
         try {
             mediaExtractor.setDataSource(context, uri, null);
             mediaMetadataRetriever = new MediaMetadataRetriever();
-            mediaMetadataRetriever.setDataSource(context, uri);
+            if (isNetworkSource) {
+                mediaMetadataRetriever.setDataSource(uri.toString(), null);
+            } else {
+                mediaMetadataRetriever.setDataSource(context, uri);
+            }
         } catch (IOException ex) {
             releaseQuietly(mediaMetadataRetriever);
             throw new MediaSourceException(DATA_SOURCE, uri, ex);

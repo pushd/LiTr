@@ -52,7 +52,7 @@ public class MediaExtractorMediaSource implements MediaSource {
         mediaExtractor = new MediaExtractor();
         MediaMetadataRetriever mediaMetadataRetriever = null;
         try {
-            mediaExtractor.setDataSource(context, uri, null);
+            mediaExtractor.setDataSource(context, uri, new HashMap<>());
             mediaMetadataRetriever = new MediaMetadataRetriever();
             if (isNetworkSource) {
                 mediaMetadataRetriever.setDataSource(uri.toString(), new HashMap<>());

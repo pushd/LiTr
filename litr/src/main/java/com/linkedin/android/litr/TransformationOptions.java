@@ -37,6 +37,8 @@ public class TransformationOptions {
     public final boolean removeMetadata;
     public final long sourceSize;
     public final boolean isNetworkSource;
+    public final int restrictToHeight;
+    public final int restrictToWidth;
 
     private TransformationOptions(@IntRange(from = GRANULARITY_NONE) int granularity,
                                   @Nullable List<GlFilter> videoFilters,
@@ -45,7 +47,9 @@ public class TransformationOptions {
                                   boolean removeAudio,
                                   boolean removeMetadata,
                                   long sourceSize,
-                                  boolean isNetworkSource) {
+                                  boolean isNetworkSource,
+                                  int restrictToHeight,
+                                  int restrictToWidth) {
         this.granularity = granularity;
         this.videoFilters = videoFilters;
         this.audioFilters = audioFilters;
@@ -54,6 +58,8 @@ public class TransformationOptions {
         this.removeMetadata = removeMetadata;
         this.sourceSize = sourceSize;
         this.isNetworkSource = isNetworkSource;
+        this.restrictToHeight = restrictToHeight;
+        this.restrictToWidth = restrictToWidth;
     }
 
     public static class Builder {
@@ -65,6 +71,8 @@ public class TransformationOptions {
         private boolean removeMetadata;
         private long sourceSize = 0;
         private boolean isNetworkSource = false;
+        private int restrictToHeight = -1;
+        private int restrictToWidth = -1;
 
         @NonNull
         public Builder setGranularity(@IntRange(from = GRANULARITY_NONE) int granularity) {
@@ -110,8 +118,15 @@ public class TransformationOptions {
         }
 
         @NonNull
+        public Builder setDimensionRestriction(int maxHeight, int maxWidth) {
+            this.restrictToHeight = maxHeight;
+            this.restrictToWidth = maxWidth;
+            return this;
+        }
+
+        @NonNull
         public TransformationOptions build() {
-            return new TransformationOptions(granularity, videoFilters, audioFilters, sourceMediaRange, removeAudio, removeMetadata, sourceSize, isNetworkSource);
+            return new TransformationOptions(granularity, videoFilters, audioFilters, sourceMediaRange, removeAudio, removeMetadata, sourceSize, isNetworkSource, restrictToHeight, restrictToWidth);
         }
     }
 }

@@ -92,11 +92,21 @@ public class MediaMuxerMediaTarget implements MediaTarget {
         }
     }
 
+    /**
+     * Should be called before starting MediaMuxer.
+     * @param orientationHint - rotation matrix info in degree.
+     */
+    public void setOrientationHint(int orientationHint) {
+        this.mediaMuxer.setOrientationHint(orientationHint);
+    }
+
     private void init(@NonNull MediaMuxer mediaMuxer, @IntRange(from = 1) int trackCount, int orientationHint) throws IllegalArgumentException {
         this.trackCount = trackCount;
 
         this.mediaMuxer = mediaMuxer;
-        this.mediaMuxer.setOrientationHint(orientationHint);
+        if (orientationHint != -1) {
+            this.mediaMuxer.setOrientationHint(orientationHint);
+        }
 
         numberOfTracksToAdd = 0;
         isStarted = false;

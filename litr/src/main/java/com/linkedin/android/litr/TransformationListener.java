@@ -8,8 +8,8 @@
 package com.linkedin.android.litr;
 
 import androidx.annotation.FloatRange;
-import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+
 import com.linkedin.android.litr.analytics.TrackTransformationInfo;
 
 import java.util.List;
@@ -24,31 +24,31 @@ public interface TransformationListener {
      * Transformation started successfully
      * @param id request id
      */
-    void onStarted(@NonNull String id);
+    void onStarted(@Nullable String id);
 
     /**
      * Transformation progress update
      * @param id request id
      * @param progress progress, from 0 to 1, with client specified granularity
      */
-    void onProgress(@NonNull String id, @FloatRange(from = 0, to = 1) float progress);
+    void onProgress(@Nullable String id, @FloatRange(from = 0, to = 1) float progress);
 
     /**
      * Transformation completed
      * @param id request id
      */
-    void onCompleted(@NonNull String id, @Nullable List<TrackTransformationInfo> trackTransformationInfos);
+    void onCompleted(@Nullable String id, @Nullable List<TrackTransformationInfo> trackTransformationInfos);
 
     /**
      * Transformation was cancelled
      * @param id request id
      */
-    void onCancelled(@NonNull String id, @Nullable List<TrackTransformationInfo> trackTransformationInfos);
+    void onCancelled(@Nullable String id, @Nullable List<TrackTransformationInfo> trackTransformationInfos);
 
     /**
      * Transformation error
      * @param id request id
      * @param cause error cause
      */
-    void onError(@NonNull String id, @Nullable Throwable cause, @Nullable List<TrackTransformationInfo> trackTransformationInfos);
+    void onError(@Nullable String id, @Nullable Throwable cause, @Nullable List<TrackTransformationInfo> trackTransformationInfos);
 }

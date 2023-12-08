@@ -140,7 +140,7 @@ class MarshallingTransformationListener {
             Bundle data = message.getData();
             String jobId = data.getString(KEY_JOB_ID);
             if (jobId == null) {
-                throw new IllegalArgumentException("Handler message doesn't contain an id!");
+                Log.e(TAG, "Handler message doesn't contain an id!");
             }
 
             switch (message.what) {

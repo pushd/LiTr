@@ -7,6 +7,8 @@
  */
 package com.linkedin.android.litr;
 
+import static com.linkedin.android.litr.exception.MediaSourceException.Error.DATA_SOURCE;
+
 import android.content.Context;
 import android.media.MediaFormat;
 import android.media.MediaMuxer;
@@ -28,7 +30,6 @@ import com.linkedin.android.litr.exception.MediaTargetException;
 import com.linkedin.android.litr.io.MediaExtractorMediaSource;
 import com.linkedin.android.litr.io.MediaMuxerMediaTarget;
 import com.linkedin.android.litr.io.MediaSource;
-import com.linkedin.android.litr.io.MediaTarget;
 import com.linkedin.android.litr.render.AudioRenderer;
 import com.linkedin.android.litr.render.GlVideoRenderer;
 import com.linkedin.android.litr.utils.MediaFormatUtils;
@@ -152,7 +153,7 @@ public class MediaTransformer {
                 : transformationOptions;
 
         try {
-            MediaSource mediaSource = new MediaExtractorMediaSource(context, inputUri, options.sourceMediaRange, options.sourceSize, options.isNetworkSource, options.restrictToHeight, options.restrictToWidth);
+            MediaSource mediaSource = new MediaExtractorMediaSource(context, inputUri, options.sourceMediaRange, options.sourceSize, options.isNetworkSource);
 
             int targetTrackCount = 0;
             for (int track = 0; track < mediaSource.getTrackCount(); track++) {
@@ -172,11 +173,11 @@ public class MediaTransformer {
                     : MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4;
 
             if (targetTrackCount > 0) {
-                MediaTarget mediaTarget = new MediaMuxerMediaTarget(
+                MediaMuxerMediaTarget mediaTarget = new MediaMuxerMediaTarget(
                         context,
                         outputUri,
                         targetTrackCount,
-                        mediaSource.getOrientationHint(),
+                        -1, // set rotation/orientation to 0, will update when we have it as part of video track format later
                         outputFormat);
 
                 int trackCount = mediaSource.getTrackCount();
@@ -189,6 +190,43 @@ public class MediaTransformer {
                         mimeType = sourceMediaFormat.getString(MediaFormat.KEY_MIME);
                     }
 
+                    if (mimeType == null) {
+                        throw new MediaSourceException(DATA_SOURCE, inputUri, new IllegalArgumentException("Video source mime type unknown"));
+                    }
+
+                    boolean isVideoTrack = mimeType.startsWith("video");
+                    boolean isAudioTrack = mimeType.startsWith("audio");
+
+                    if (isVideoTrack) {
+                        if (options.restrictToHeight > 0 && sourceMediaFormat.containsKey(MediaFormat.KEY_HEIGHT)) {
+                            int sourceVideoHeight = sourceMediaFormat.getInteger(MediaFormat.KEY_HEIGHT);
+                            Log.i(TAG, "Video height from source format: " + sourceVideoHeight);
+                            if (sourceVideoHeight > options.restrictToHeight) {
+                                throw new MediaSourceException(DATA_SOURCE, inputUri, new IllegalArgumentException("Video height greater than given restriction of " + options.restrictToHeight));
+                            }
+                        } else {
+                            Log.w(TAG, (options.restrictToHeight > 0 ? "Could not " : "Ignore ") + "check the height of the video source");
+                        }
+
+                        if (options.restrictToWidth > 0 && sourceMediaFormat.containsKey(MediaFormat.KEY_WIDTH)) {
+                            int sourceVideoWidth = sourceMediaFormat.getInteger(MediaFormat.KEY_WIDTH);
+                            Log.i(TAG, "Video width from source format: " + sourceVideoWidth);
+                            if (sourceVideoWidth > options.restrictToWidth) {
+                                throw new MediaSourceException(DATA_SOURCE, inputUri, new IllegalArgumentException("Video width greater than given restriction of " + options.restrictToWidth));
+                            }
+                        } else {
+                            Log.w(TAG, (options.restrictToWidth > 0 ? "Could not " : "Ignore ") + "check the width of the video source");
+                        }
+
+                        if (sourceMediaFormat.containsKey(MediaFormat.KEY_ROTATION)) {
+                            int orientationHint = sourceMediaFormat.getInteger(MediaFormat.KEY_ROTATION);
+                            Log.i(TAG, "Video rotation from source format: " + orientationHint);
+                            mediaTarget.setOrientationHint(orientationHint);
+                        } else {
+                            Log.i(TAG, "Video rotation not present in source format");
+                        }
+                    }
+
                     if (!shouldIncludeTrack(mimeType, options.removeAudio, options.removeMetadata)) {
                         continue;
                     }
@@ -196,12 +234,12 @@ public class MediaTransformer {
                     TrackTransform.Builder trackTransformBuilder = new TrackTransform.Builder(mediaSource, track, mediaTarget)
                             .setTargetTrack(trackTransforms.size());
 
-                    if (mimeType.startsWith("video")) {
+                    if (isVideoTrack) {
                         trackTransformBuilder.setDecoder(new MediaCodecDecoder())
                                 .setRenderer(new GlVideoRenderer(options.videoFilters))
                                 .setEncoder(new MediaCodecEncoder())
                                 .setTargetFormat(targetVideoFormat);
-                    } else if (mimeType.startsWith("audio")) {
+                    } else if (isAudioTrack) {
                         Encoder encoder = new MediaCodecEncoder();
                         trackTransformBuilder.setDecoder(new MediaCodecDecoder())
                                 .setEncoder(encoder)
@@ -321,7 +359,7 @@ public class MediaTransformer {
                         .build();
 
                 trackTransforms.set(trackIndex, updatedTrackTransform);
-                }
+            }
         }
 
         TransformationJob transformationJob = new TransformationJob(requestId,

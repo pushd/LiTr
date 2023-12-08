@@ -177,7 +177,7 @@ public class MediaTransformer {
                         context,
                         outputUri,
                         targetTrackCount,
-                        -1, // set rotation/orientation to 0, will update when we have it as part of video track format later
+                        -1, // set rotation/orientation to -1, will update when we have it as part of video track format later
                         outputFormat);
 
                 int trackCount = mediaSource.getTrackCount();

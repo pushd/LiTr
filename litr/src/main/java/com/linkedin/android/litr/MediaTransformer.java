@@ -348,6 +348,26 @@ public class MediaTransformer {
                     );
 
                 }
+
+                if (targetFormat.getString(MediaFormat.KEY_MIME).contains("video")) {
+                    // Video decoder on a133 uses block size of 32 and decodes video's frames with width and height a multiple of 32.
+                    // If we do not use the target format a multiple of 32 the encoder will fail to encode a frame that is upscaled by the decoder.
+                    int videoHeight = targetFormat.getInteger(MediaFormat.KEY_HEIGHT);
+                    int videoWidth = targetFormat.getInteger(MediaFormat.KEY_WIDTH);
+                    int widthToUse = videoWidth;
+                    int heightToUse = videoHeight;
+                    if (videoWidth % 32 != 0) {
+                        widthToUse = videoWidth + (32 - videoWidth % 32);
+                    }
+                    if (videoHeight % 32 != 0) {
+                        heightToUse = videoHeight + (32 - videoHeight % 32);
+                    }
+                    Log.i("viral", "width to use " + widthToUse);
+                    Log.i("viral", "height to use " + heightToUse);
+                    targetFormat.setInteger(MediaFormat.KEY_HEIGHT, heightToUse);
+                    targetFormat.setInteger(MediaFormat.KEY_WIDTH, widthToUse);
+                }
+
                 TrackTransform updatedTrackTransform = new TrackTransform.Builder(trackTransform.getMediaSource(),
                         trackTransform.getSourceTrack(),
                         trackTransform.getMediaTarget())
@@ -359,25 +379,6 @@ public class MediaTransformer {
                         .build();
 
                 trackTransforms.set(trackIndex, updatedTrackTransform);
-            }
-
-            if (targetFormat.getString(MediaFormat.KEY_MIME).contains("video")) {
-                // Video decoder on a133 uses block size of 32 and decodes video's frames with width and height a multiple of 32.
-                // If we do not use the target format a multiple of 32 the encoder will fail to encode a frame that is upscaled by the decoder.
-                int videoHeight = targetFormat.getInteger(MediaFormat.KEY_HEIGHT);
-                int videoWidth = targetFormat.getInteger(MediaFormat.KEY_WIDTH);
-                int widthToUse = videoWidth;
-                int heightToUse = videoHeight;
-                if (videoWidth % 32 != 0) {
-                    widthToUse = videoWidth + (32 - videoWidth % 32);
-                }
-                if (videoHeight % 32 != 0) {
-                    heightToUse = videoHeight + (32 - videoHeight % 32);
-                }
-                Log.i("viral", "width to use " + widthToUse);
-                Log.i("viral", "height to use " + heightToUse);
-                targetFormat.setInteger(MediaFormat.KEY_HEIGHT, heightToUse);
-                targetFormat.setInteger(MediaFormat.KEY_WIDTH, widthToUse);
             }
         }
 

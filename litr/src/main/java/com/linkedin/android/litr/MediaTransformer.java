@@ -362,6 +362,7 @@ public class MediaTransformer {
                     if (videoHeight % 32 != 0) {
                         heightToUse = videoHeight + (32 - videoHeight % 32);
                     }
+                    Log.i(TAG, "Video output format resolution width x height: " + widthToUse + " x " + heightToUse);
                     targetFormat.setInteger(MediaFormat.KEY_HEIGHT, heightToUse);
                     targetFormat.setInteger(MediaFormat.KEY_WIDTH, widthToUse);
                 }

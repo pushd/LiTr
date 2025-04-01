@@ -362,8 +362,6 @@ public class MediaTransformer {
                     if (videoHeight % 32 != 0) {
                         heightToUse = videoHeight + (32 - videoHeight % 32);
                     }
-                    Log.i("viral", "width to use " + widthToUse);
-                    Log.i("viral", "height to use " + heightToUse);
                     targetFormat.setInteger(MediaFormat.KEY_HEIGHT, heightToUse);
                     targetFormat.setInteger(MediaFormat.KEY_WIDTH, widthToUse);
                 }

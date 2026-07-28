@@ -19,6 +19,7 @@ import com.linkedin.android.litr.filter.GlFilter;
 import com.linkedin.android.litr.io.MediaRange;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * A data class which specifies different transformation options:
@@ -37,6 +38,7 @@ public class TransformationOptions {
     public final boolean removeMetadata;
     public final long sourceSize;
     public final boolean isNetworkSource;
+    @Nullable public final Map<String, String> sourceHeaders;
     public final int restrictToHeight;
     public final int restrictToWidth;
 
@@ -48,6 +50,7 @@ public class TransformationOptions {
                                   boolean removeMetadata,
                                   long sourceSize,
                                   boolean isNetworkSource,
+                                  @Nullable Map<String, String> sourceHeaders,
                                   int restrictToHeight,
                                   int restrictToWidth) {
         this.granularity = granularity;
@@ -58,6 +61,7 @@ public class TransformationOptions {
         this.removeMetadata = removeMetadata;
         this.sourceSize = sourceSize;
         this.isNetworkSource = isNetworkSource;
+        this.sourceHeaders = sourceHeaders;
         this.restrictToHeight = restrictToHeight;
         this.restrictToWidth = restrictToWidth;
     }
@@ -71,6 +75,7 @@ public class TransformationOptions {
         private boolean removeMetadata;
         private long sourceSize = 0;
         private boolean isNetworkSource = false;
+        private Map<String, String> sourceHeaders;
         private int restrictToHeight = -1;
         private int restrictToWidth = -1;
 
@@ -112,8 +117,18 @@ public class TransformationOptions {
 
         @NonNull
         public Builder setSourceAsNetwork(long sourceSize) {
+            return setSourceAsNetwork(sourceSize, null);
+        }
+
+        /**
+         * @param headers request headers sent when the network source Uri is fetched, e.g. a
+         *                {@code User-Agent} to override the platform media stack's default.
+         */
+        @NonNull
+        public Builder setSourceAsNetwork(long sourceSize, @Nullable Map<String, String> headers) {
             this.isNetworkSource = true;
             this.sourceSize = sourceSize;
+            this.sourceHeaders = headers;
             return this;
         }
 
@@ -126,7 +141,7 @@ public class TransformationOptions {
 
         @NonNull
         public TransformationOptions build() {
-            return new TransformationOptions(granularity, videoFilters, audioFilters, sourceMediaRange, removeAudio, removeMetadata, sourceSize, isNetworkSource, restrictToHeight, restrictToWidth);
+            return new TransformationOptions(granularity, videoFilters, audioFilters, sourceMediaRange, removeAudio, removeMetadata, sourceSize, isNetworkSource, sourceHeaders, restrictToHeight, restrictToWidth);
         }
     }
 }

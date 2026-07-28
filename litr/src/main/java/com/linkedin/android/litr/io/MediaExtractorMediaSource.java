@@ -16,6 +16,7 @@ import android.net.Uri;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import com.linkedin.android.litr.exception.MediaSourceException;
 import com.linkedin.android.litr.utils.TranscoderUtils;
@@ -23,6 +24,7 @@ import com.linkedin.android.litr.utils.TranscoderUtils;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
+import java.util.Map;
 
 /**
  * An implementation of MediaSource, which wraps Android's {@link MediaExtractor}
@@ -43,14 +45,27 @@ public class MediaExtractorMediaSource implements MediaSource {
     }
 
     public MediaExtractorMediaSource(@NonNull Context context, @NonNull Uri uri, @NonNull MediaRange mediaRange, long size, boolean isNetworkSource) throws MediaSourceException {
+        this(context, uri, mediaRange, size, isNetworkSource, null);
+    }
+
+    /**
+     * @param headers request headers to send when {@code uri} is fetched, e.g. a {@code User-Agent}.
+     *                Only meaningful for network (http/https/rtsp) sources; the platform ignores them
+     *                for local file/content Uris.
+     */
+    public MediaExtractorMediaSource(@NonNull Context context, @NonNull Uri uri, @NonNull MediaRange mediaRange, long size, boolean isNetworkSource, @Nullable Map<String, String> headers) throws MediaSourceException {
         this.mediaRange = mediaRange;
 
         mediaExtractor = new MediaExtractor();
         try {
             if (isNetworkSource) {
-                mediaExtractor.setDataSource(uri.toString());
+                if (headers != null && !headers.isEmpty()) {
+                    mediaExtractor.setDataSource(uri.toString(), headers);
+                } else {
+                    mediaExtractor.setDataSource(uri.toString());
+                }
             } else {
-                mediaExtractor.setDataSource(context, uri, new HashMap<>());
+                mediaExtractor.setDataSource(context, uri, headers != null ? headers : new HashMap<>());
             }
         } catch (IOException ex) {
             throw new MediaSourceException(DATA_SOURCE, uri, ex);

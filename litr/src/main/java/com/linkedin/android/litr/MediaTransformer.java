@@ -21,6 +21,7 @@ import android.util.Log;
 import androidx.annotation.IntRange;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.VisibleForTesting;
 
 import com.linkedin.android.litr.codec.Encoder;
 import com.linkedin.android.litr.codec.MediaCodecDecoder;
@@ -59,6 +60,8 @@ public class MediaTransformer {
     public static final int DEFAULT_KEY_FRAME_INTERVAL = 5;
     private static final int DEFAULT_AUDIO_BITRATE = 256_000;
     private static final int DEFAULT_FRAME_RATE = 30;
+    /** Floor for pixel-scaled video bitrate, so a tiny output doesn't get an unusable bitrate. */
+    private static final int MIN_SCALED_VIDEO_BITRATE = 400_000;
 
     private static final String TAG = MediaTransformer.class.getSimpleName();
     private static final int DEFAULT_FUTURE_MAP_SIZE = 10;
@@ -225,6 +228,11 @@ public class MediaTransformer {
                         } else {
                             Log.i(TAG, "Video rotation not present in source format");
                         }
+
+                        // Downscale the target to the client's bounding box before the target format
+                        // is frozen into a TrackTransform. Done here because this is the only place
+                        // where both the source format and the caller's options are in scope.
+                        applyOutputResolutionFit(mediaSource, track, sourceMediaFormat, targetVideoFormat, options);
                     }
 
                     if (!shouldIncludeTrack(mimeType, options.removeAudio, options.removeMetadata)) {
@@ -440,6 +448,94 @@ public class MediaTransformer {
      */
     public long getEstimatedTargetVideoSize(@NonNull List<TrackTransform> trackTransforms) {
         return TranscoderUtils.getEstimatedTargetFileSize(trackTransforms);
+    }
+
+    /**
+     * Scale {@code targetVideoFormat} down to fit inside the bounding box from
+     * {@link TransformationOptions.Builder#setOutputResolutionFit}, preserving aspect ratio.
+     *
+     * No-op unless the option is set, the source declares its dimensions, and the target format left
+     * width/height unspecified (an explicit caller-provided size always wins). Never upscales.
+     *
+     * Dimensions are snapped to the nearest multiple of 32 rather than rounded up, so the aspect
+     * ratio stays closer to the source and the later multiple-of-32 correction becomes a no-op.
+     */
+    private void applyOutputResolutionFit(@NonNull MediaSource mediaSource,
+                                          int sourceTrack,
+                                          @NonNull MediaFormat sourceMediaFormat,
+                                          @Nullable MediaFormat targetVideoFormat,
+                                          @NonNull TransformationOptions options) {
+        if (targetVideoFormat == null || options.fitToWidth <= 0 || options.fitToHeight <= 0) {
+            return;
+        }
+        if (!sourceMediaFormat.containsKey(MediaFormat.KEY_WIDTH) || !sourceMediaFormat.containsKey(MediaFormat.KEY_HEIGHT)) {
+            Log.w(TAG, "Source has no dimensions, cannot fit output resolution");
+            return;
+        }
+        if (targetVideoFormat.containsKey(MediaFormat.KEY_WIDTH) || targetVideoFormat.containsKey(MediaFormat.KEY_HEIGHT)) {
+            // caller asked for a specific output size, don't second-guess it
+            return;
+        }
+
+        int sourceWidth = sourceMediaFormat.getInteger(MediaFormat.KEY_WIDTH);
+        int sourceHeight = sourceMediaFormat.getInteger(MediaFormat.KEY_HEIGHT);
+        if (sourceWidth <= 0 || sourceHeight <= 0) {
+            return;
+        }
+
+        int[] fitted = fitDimensions(sourceWidth, sourceHeight, options.fitToWidth, options.fitToHeight);
+        if (fitted == null) {
+            // already inside the box, never upscale
+            return;
+        }
+
+        int targetWidth = fitted[0];
+        int targetHeight = fitted[1];
+        targetVideoFormat.setInteger(MediaFormat.KEY_WIDTH, targetWidth);
+        targetVideoFormat.setInteger(MediaFormat.KEY_HEIGHT, targetHeight);
+
+        if (!targetVideoFormat.containsKey(MediaFormat.KEY_BIT_RATE)) {
+            // Keep bits-per-pixel roughly constant. Without this the encoder would spend the
+            // source's full bitrate on a quarter of the pixels: bigger files, slower encode, no
+            // visible gain.
+            long sourcePixels = (long) sourceWidth * sourceHeight;
+            long targetPixels = (long) targetWidth * targetHeight;
+            int sourceBitrate = TranscoderUtils.estimateVideoTrackBitrate(mediaSource, sourceTrack);
+            if (sourceBitrate > 0 && sourcePixels > 0) {
+                int scaledBitrate = (int) Math.max(MIN_SCALED_VIDEO_BITRATE,
+                        (long) sourceBitrate * targetPixels / sourcePixels);
+                targetVideoFormat.setInteger(MediaFormat.KEY_BIT_RATE, scaledBitrate);
+                Log.i(TAG, "Scaled target bitrate " + sourceBitrate + " -> " + scaledBitrate);
+            }
+        }
+
+        Log.i(TAG, "Fitted output resolution " + sourceWidth + "x" + sourceHeight
+                + " -> " + targetWidth + "x" + targetHeight
+                + " within " + options.fitToWidth + "x" + options.fitToHeight);
+    }
+
+    /**
+     * Scale {@code sourceWidth x sourceHeight} down to fit inside {@code maxWidth x maxHeight},
+     * preserving aspect ratio and snapping each edge to the nearest multiple of 32.
+     *
+     * @return {@code {width, height}}, or null if the source already fits (never upscales).
+     */
+    @Nullable
+    @VisibleForTesting
+    static int[] fitDimensions(int sourceWidth, int sourceHeight, int maxWidth, int maxHeight) {
+        float scale = Math.min((float) maxWidth / sourceWidth, (float) maxHeight / sourceHeight);
+        if (scale >= 1f) {
+            return null;
+        }
+        return new int[] {
+                roundToNearestMultipleOf32(sourceWidth * scale),
+                roundToNearestMultipleOf32(sourceHeight * scale)
+        };
+    }
+
+    private static int roundToNearestMultipleOf32(float value) {
+        int rounded = Math.round(value / 32f) * 32;
+        return Math.max(32, rounded);
     }
 
     private boolean shouldIncludeTrack(@NonNull MediaFormat sourceMediaFormat, boolean removeAudio, boolean removeMetadata) {

@@ -41,6 +41,8 @@ public class TransformationOptions {
     @Nullable public final Map<String, String> sourceHeaders;
     public final int restrictToHeight;
     public final int restrictToWidth;
+    public final int fitToWidth;
+    public final int fitToHeight;
 
     private TransformationOptions(@IntRange(from = GRANULARITY_NONE) int granularity,
                                   @Nullable List<GlFilter> videoFilters,
@@ -52,7 +54,11 @@ public class TransformationOptions {
                                   boolean isNetworkSource,
                                   @Nullable Map<String, String> sourceHeaders,
                                   int restrictToHeight,
-                                  int restrictToWidth) {
+                                  int restrictToWidth,
+                                  int fitToWidth,
+                                  int fitToHeight) {
+        this.fitToWidth = fitToWidth;
+        this.fitToHeight = fitToHeight;
         this.granularity = granularity;
         this.videoFilters = videoFilters;
         this.audioFilters = audioFilters;
@@ -78,6 +84,8 @@ public class TransformationOptions {
         private Map<String, String> sourceHeaders;
         private int restrictToHeight = -1;
         private int restrictToWidth = -1;
+        private int fitToWidth = -1;
+        private int fitToHeight = -1;
 
         @NonNull
         public Builder setGranularity(@IntRange(from = GRANULARITY_NONE) int granularity) {
@@ -139,9 +147,24 @@ public class TransformationOptions {
             return this;
         }
 
+        /**
+         * Scale the output video down to fit within a bounding box, preserving aspect ratio.
+         * Also scales the target bitrate by the pixel-count ratio, unless the caller set
+         * {@link android.media.MediaFormat#KEY_BIT_RATE} explicitly.
+         *
+         * @param maxWidth  bounding box width in pixels, or -1 to disable
+         * @param maxHeight bounding box height in pixels, or -1 to disable
+         */
+        @NonNull
+        public Builder setOutputResolutionFit(int maxWidth, int maxHeight) {
+            this.fitToWidth = maxWidth;
+            this.fitToHeight = maxHeight;
+            return this;
+        }
+
         @NonNull
         public TransformationOptions build() {
-            return new TransformationOptions(granularity, videoFilters, audioFilters, sourceMediaRange, removeAudio, removeMetadata, sourceSize, isNetworkSource, sourceHeaders, restrictToHeight, restrictToWidth);
+            return new TransformationOptions(granularity, videoFilters, audioFilters, sourceMediaRange, removeAudio, removeMetadata, sourceSize, isNetworkSource, sourceHeaders, restrictToHeight, restrictToWidth, fitToWidth, fitToHeight);
         }
     }
 }
